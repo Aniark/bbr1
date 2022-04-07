@@ -22,7 +22,8 @@ jobs:
          mkdir releases
       - name: Build
         run: |
-          git clone git://git.kernel.org/pub/scm/linux/kernel/git/netdev/net-next.git
+          wget https://git.kernel.org/pub/scm/linux/kernel/git/netdev/net-next.git/snapshot/net-next-master.tar.gz
+          tar xf net-next-master.tar.gz
           cd net-next
           wget https://github.com/Aniark/bbr/raw/v2alpha/.config
           sed -i 's/CONFIG_SYSTEM_TRUSTED_KEYS*/#CONFIG_SYSTEM_TRUSTED_KEYS*/' .config
@@ -30,7 +31,6 @@ jobs:
           make deb-pkg -j`nproc`
       - name: Move bins to release dir
         run: |
-          cd ..
           mv *.deb ${GITHUB_WORKSPACE}/releases
       - name: Generate release tag
         run: |
