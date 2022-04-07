@@ -1,0 +1,50 @@
+name: build
+
+on:
+  repository_dispatch:
+  workflow_dispatch:
+#  push:
+#  release:
+#    types: [released, edited]
+
+jobs:
+  build:
+    name: bbr1
+    runs-on: ubuntu-latest
+    env:
+      TZ: Asia/Shanghai
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install deps
+        run: |
+         sudo apt update --quiet || true
+         sudo apt -yq --no-install-suggests --no-install-recommends install kernel-package libncurses5-dev libelf-dev
+         mkdir releases
+      - name: Build
+        run: |
+          git clone git://git.kernel.org/pub/scm/linux/kernel/git/netdev/net-next.git
+          cd net-next
+          wget https://github.com/Aniark/bbr/raw/v2alpha/.config
+          sed -i 's/CONFIG_SYSTEM_TRUSTED_KEYS*/#CONFIG_SYSTEM_TRUSTED_KEYS*/' .config
+          sed -i 's/CONFIG_DEBUG_INFO*/#CONFIG_DEBUG_INFO*/' .config
+          make deb-pkg -j`nproc`
+      - name: Move bins to release dir
+        run: |
+          cd ..
+          mv *.deb ${GITHUB_WORKSPACE}/releases
+      - name: Generate release tag
+        run: |
+          echo "::set-output name=release_tag::bbr1"
+          touch release.txt
+          echo "Last updated on $(date +"%Y.%m.%d-%H:%M") UTC+08:00" >> release.txt
+      - name: Upload bins to release
+        uses: softprops/action-gh-release@v1
+        with:
+         tag_name: bbr1
+         body_path: release.txt
+         files: releases/*
+      - name: Delete workflow runs
+        uses: GitRML/delete-workflow-runs@main
+        with:
+         retain_days: 1
+         keep_minimum_runs: 3
